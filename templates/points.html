@@ -1,0 +1,153 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>The Alchemist WEB Socket Simulator</title>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.4.2.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        $(document).ready(function() {
+            namespace = '/main';
+            var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+            var current = {'lat': 37.4118, 'lon': -122.0713};
+
+            socket.emit('get_points', current);
+
+            var map = new google.maps.Map(document.getElementById('map'), {
+              zoom: 15,
+              center: {lat: current.lat, lng: current.lon}
+            });
+
+            map.addListener('center_changed', function() {
+                var c = map.getCenter()
+                // console.log(c.lat() + ', ' + c.lng())
+            });
+
+            map.addListener('dragend', function() {
+                console.log('location changed');
+                var c = map.getCenter();
+                console.log(c.lat() + ' - ' + c.lng());
+                var current = {'lat': c.lat(), 'lon': c.lng()};
+                socket.emit('get_points', current);
+            });
+
+            var input = document.getElementById('pac-input');
+            var searchBox = new google.maps.places.SearchBox(input);
+
+            map.addListener('bounds_changed', function() {
+                searchBox.setBounds(map.getBounds());
+            });
+
+            searchBox.addListener('places_changed', function() {
+                var places = searchBox.getPlaces();
+
+                if (places.length == 0) {
+                    return;
+                }
+
+                // For each place, get the icon, name and location.
+                var bounds = new google.maps.LatLngBounds();
+                places.forEach(function(place) {
+                    if (!place.geometry) {
+                      console.log("Returned place contains no geometry");
+                      return;
+                    }
+                    var icon = {
+                      url: place.icon,
+                      size: new google.maps.Size(71, 71),
+                      origin: new google.maps.Point(0, 0),
+                      anchor: new google.maps.Point(17, 34),
+                      scaledSize: new google.maps.Size(25, 25)
+                    };
+
+
+                    if (place.geometry.viewport) {
+                      // Only geocodes have viewport.
+                      bounds.union(place.geometry.viewport);
+                    } else {
+                      bounds.extend(place.geometry.location);
+                    }
+                });
+                map.fitBounds(bounds);
+                var current = {'lat': bounds.getCenter().lat(), 'lon': bounds.getCenter().lng()};
+                socket.emit('get_points', current);
+            });
+
+            socket.on('receive_points', function(data) {
+                console.log('received points');
+                initMap(data.points, data.labels, data.descriptions, data.titles, data.quantities, data.current, socket, map)
+            });
+        });
+
+        var markers = [];
+        var markerCluster = null;
+
+        function removeMarkers(){
+            for (var i = 0; i < markers.length; i++) {
+              markers[i].setMap(null);
+            }
+            markers.length = 0;
+        }
+
+        function initMap(locations, labels, descriptions, titles, quantities, current, socket, map) {
+            console.log('initMap');
+
+            removeMarkers();
+
+            for(var i=0, location; location = locations[i]; i++){
+                var infowindow = new google.maps.InfoWindow();
+
+                var marker = new google.maps.Marker({
+                    position: {lat: location.lat, lng: location.lon},
+                    map: map,
+                    title: titles[i],
+                    label: labels[i]
+                });
+
+                google.maps.event.addListener(marker, 'click', (function(marker, i) {
+                    return function() {
+                      infowindow.setContent('<b>Title:</b> ' + titles[i] + '<br/>'+
+                                            '<b>Quantity:</b> ' + quantities[i] + '<br/>'+
+                                            '<b>Description:</b> ' + descriptions[i]);
+                      infowindow.open(map, marker);
+                    }
+                })(marker, i));
+
+                markers[i] = marker;
+            }
+
+            // Add a marker clusterer to manage the markers.
+            //markerCluster = new MarkerClusterer(map, markers,
+            //    {imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m'});
+          }
+    </script>
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
+    <script src="https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/markerclusterer.js"></script>
+    <script src='https://maps.googleapis.com/maps/api/js?key=AIzaSyAHdc4Oc035LDK2B5g-YC8L33ImRsC-2uE&libraries=places'></script>
+    <style>
+        .info{
+            display: none;
+        }
+        .trigger{
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .info{
+            font-size: 13px;
+        }
+        h3{
+            margin-bottom: 0;
+        }
+        #map {
+            height: 800px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+<div style="text-align: center;">
+    <h1>The Alchemist WEB Socket Simulator</h1>
+    <h3>Points</h3>
+</div>
+<input id="pac-input" style="width: 100%;" class="controls" type="text" placeholder="Search Box"/>
+<div id="map"></div>
+</body>
+</html>

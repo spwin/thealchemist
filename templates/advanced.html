@@ -1,0 +1,393 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>The Alchemist WEB Socket Simulator</title>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.4.2.min.js"></script>
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
+    <script type="text/javascript" src='http://maps.google.com/maps/api/js?libraries=places&key=AIzaSyAHdc4Oc035LDK2B5g-YC8L33ImRsC-2uE'></script>
+    <script type="text/javascript" src="http://rawgit.com/Logicify/jquery-locationpicker-plugin/master/dist/locationpicker.jquery.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        $(document).ready(function() {
+            // Use a "/test" namespace.
+            // An application can open a connection on multiple namespaces, and
+            // Socket.IO will multiplex all those connections on a single
+            // physical channel. If you don't care about multiple channels, you
+            // can set the namespace to an empty string.
+            namespace = '/main';
+
+            // Connect to the Socket.IO server.
+            // The connection URL has the following format:
+            //     http[s]://<domain>:<port>[/<namespace>]
+            // var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+            // var socket = io.connect(null, {port: 5000, rememberTransport: false});
+            var socket = io.connect('http://www.thealchemist.com/main');
+
+            // Event handler for new connections.
+            // The callback function is invoked when a connection with the
+            // server is established.
+            socket.on('connect', function() {
+                socket.emit('broadcast', 'I\'m connected!');
+            });
+
+            // Event handler for server sent data.
+            // The callback function is invoked whenever the server emits data
+            // to the client. The data is then displayed in the "Received"
+            // section of the page.
+            socket.on('broadcast', function(msg) {
+                $('#log').prepend('<br>' + $('<div/>').text('Received #: ' + msg.msg).html());
+            });
+
+            // Interval function that tests message latency by sending a "ping"
+            // message. The server then responds with a "pong" message and the
+            // round trip time is measured.
+            var ping_pong_times = [];
+            var start_time;
+            window.setInterval(function() {
+                start_time = (new Date).getTime();
+                socket.emit('my_ping', {'lat': eventFlow.getLat(), 'lon': eventFlow.getLon()});
+            }, 1000);
+
+            // Handler for the "pong" message. When the pong is received, the
+            // time from the ping is stored, and the average of the last 30
+            // samples is average and displayed.
+            socket.on('my_pong', function() {
+                var latency = (new Date).getTime() - start_time;
+                ping_pong_times.push(latency);
+                ping_pong_times = ping_pong_times.slice(-30); // keep last 30 samples
+                var sum = 0;
+                for (var i = 0; i < ping_pong_times.length; i++)
+                    sum += ping_pong_times[i];
+                $('#ping-pong').text(Math.round(10 * sum / ping_pong_times.length) / 10);
+            });
+
+            // Handlers for the different forms in the page.
+            // These accept data from the user and send it to the server in a
+            // variety of ways
+
+
+            // We dont need this function
+            $('form#broadcast').submit(function(event) {
+                socket.emit('broadcast', $('#broadcast_data').val());
+                return false;
+            });
+
+
+            $('form#join').submit(function(event) {
+                socket.emit('bind', {tower: $('#join_room').val(), 'lat': eventFlow.getLat(), 'lon': eventFlow.getLon()});
+                return false;
+            });
+            $('form#leave').submit(function(event) {
+                socket.emit('leave', {tower: $('#leave_room').val(), 'lat': eventFlow.getLat(), 'lon': eventFlow.getLon()});
+                return false;
+            });
+            $('form#send_room').submit(function(event) {
+                socket.emit('broadcast_tower', {tower: $('#room_name').val(), action: $('#room_data').val(), 'lat': eventFlow.getLat(), 'lon': eventFlow.getLon()});
+                return false;
+            });
+            $('form#register').submit(function(event) {
+                socket.emit('register', {username: $('#user_name').val(), email: $('#user_email').val(), password: $('#user_password').val(), 'lat': eventFlow.getLat(), 'lon': eventFlow.getLon()});
+                return false;
+            });
+            $('form#login').submit(function(event) {
+                socket.emit('login', {email: $('#login_name').val(), password: $('#login_password').val(), 'lat': eventFlow.getLat(), 'lon': eventFlow.getLon()});
+                return false;
+            });
+            $('form#logout').submit(function(event) {
+                socket.emit('logout', {'lat': eventFlow.getLat(), 'lon': eventFlow.getLon()});
+                $('.logged').hide();
+                $('.not-logged').show();
+                return false;
+            });
+
+            var eventFlow = function($){
+                var towers = [];
+                var current_tower;
+                var lat = 37.4118;
+                var lon = -122.0713;
+                var socket;
+
+                return {
+                    init: function(){
+                        console.log('init');
+                        eventFlow.checkCurrentTower();
+                    },
+                    setSocket: function(s){
+                        socket = s;
+                        eventFlow.bindSocketListeners();
+                    },
+                    bindSocketListeners: function(){
+                        socket.on('towers_received', function(data) {
+                            $('#log').prepend('<br>' + $('<div/>').text('Received #: ' + data.towers.length + ' towers saved!').html());
+                            $('#log').prepend('<br>' + $('<div/>').text('Received #:  Binded to tower ID: ' + data.current.id).html());
+                            $('#room_name').val(data.current.id);
+                            $('#towers ul').empty();
+                            $.each( data.towers, function( key, value ) {
+                                $('#towers ul').append('<li>Lat: ' + value.lat/100 + '   Lon: ' + value.lon/100 + '</li>');
+                            });
+                            current_tower = data.current;
+                            towers = data.towers;
+                        });
+                    },
+                    getLat: function(){
+                        return lat;
+                    },
+                    getLon: function(){
+                        return lon;
+                    },
+                    locationChange: function(location){
+                        console.log('locationChange');
+                        lat = Math.round(location.latitude*10000)/10000;
+                        lon = Math.round(location.longitude*10000)/10000;
+                        eventFlow.checkCurrentTower(location);
+                    },
+                    checkCurrentTower: function(location) {
+                        console.log('checkCurrentTower');
+                        // check if there are some towers stored
+                        if(towers.length > 0){
+                            var tower_exists = false;
+                            var lat = Math.round(location.latitude*100);
+                            var lon = Math.round(location.longitude*100);
+                            $.each(towers, function(key, value){
+                                if(value.lat === lat && value.lon === lon){
+                                    tower_exists = true;
+                                }
+                            });
+                            if(tower_exists && current_tower){
+                                if(lat === current_tower.lat && lon === current_tower.lon){
+                                    // Do nothing
+                                    console.log('Do nothing');
+                                } else {
+                                    eventFlow.getTowers();
+                                }
+                            } else {
+                                eventFlow.getTowers();
+                            }
+                        }
+                        // otherwise get towers from the server
+                        else {
+                            eventFlow.getTowers();
+                        }
+                    },
+                    getTowers: function(){
+                        console.log('getTowers');
+                        socket.emit('get_towers', {'lat': eventFlow.getLat(), 'lon': eventFlow.getLon()});
+                    }
+                }
+            }(jQuery);
+
+            socket.on('auth', function(data) {
+                if(data.status === 'error'){
+                    $('.logged').hide();
+                    $('.not-logged').show();
+                    $('#log').prepend('<br><span style="color: red;">Received #: ' + data.message + '</span>');
+                } else {
+                    if(data.action === 'login'){
+                        $('.logged').show();
+                        $('.not-logged').hide();
+                        eventFlow.init();
+                    }
+                    $('#log').prepend('<br>' + $('<div/>').text('Received #: ' + data.message).html());
+                }
+            });
+
+            eventFlow.setSocket(socket);
+
+            $('#map').locationpicker({
+                location: {
+                    latitude: eventFlow.getLat(),
+                    longitude: eventFlow.getLon()
+                },
+                inputBinding: {
+                    latitudeInput: $('#us2-lat'),
+                    longitudeInput: $('#us2-lon'),
+                    locationNameInput: $('#us2-address')
+                },
+                radius: 0,
+                enableAutocomplete: true,
+                onchanged: function(currentLocation, radius, isMarkerDropped) {
+                    eventFlow.locationChange(currentLocation);
+                }
+            });
+
+            $('.trigger').click(function(){
+                $(this).parent().find('.info').slideToggle();
+            });
+
+            $('form#start').submit(function(event) {
+                event.preventDefault();
+                eventFlow.init();
+                return false;
+            });
+
+            eventFlow.init();
+
+        });
+    </script>
+    <style>
+        .info{
+            display: none;
+        }
+        .trigger{
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .info{
+            font-size: 13px;
+        }
+        h3{
+            margin-bottom: 0;
+        }
+        #map {
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+<div style="text-align: center;">
+    <h1>The Alchemist WEB Socket Simulator</h1>
+    <h3>Flask + SocketIO + Cassandra + RabbitMQ</h3>
+</div>
+
+<!--<form id="start" method="POST" action='#'>-->
+    <!--<input style="padding: 10px 30px; font-size: 16px; width: 100%;" type="submit" value="Start flow">-->
+<!--</form>-->
+
+<p>Average ping/pong latency: <b><span id="ping-pong"></span>ms</b></p>
+<div style="width: 50%; float: left;">
+    <h2>Access without Login</h2>
+
+    <h3>Broadcast:</h3>
+    <div class="info-block">
+        <span class="trigger">Show info</span>
+        <div class="info">
+            <p>emit('broadcast', string $action)</p>
+            <ul>
+                <li>$action - action name to be broadcasted to all</li>
+            </ul>
+        </div>
+    </div>
+
+    <form id="broadcast" method="POST" action='#'>
+        <input type="text" name="broadcast_data" id="broadcast_data" placeholder="Action">
+        <input type="submit" value="Send action">
+    </form>
+
+    <div class="not-logged">
+        <h3>Registration</h3>
+        <div class="info-block">
+            <span class="trigger">Show info</span>
+            <div class="info">
+                <p>emit('register', {username : string $username, email: string $email, password: string $password})</p>
+                <ul>
+                    <li>$username - username</li>
+                    <li>$email - email</li>
+                    <li>$password - password</li>
+                </ul>
+            </div>
+        </div>
+        <form id="register" method="POST" action='#'>
+            <input type="text" name="user_name" id="user_name" placeholder="User Name">
+            <input type="text" name="user_email" id="user_email" placeholder="Email">
+            <input type="text" name="user_password" id="user_password" placeholder="Password">
+            <input type="submit" value="Register">
+        </form>
+        <h3>Login</h3>
+        <div class="info-block">
+            <span class="trigger">Show info</span>
+            <div class="info">
+                <p>emit('login', {username : string $username, password: string $password})</p>
+                <ul>
+                    <li>$username - username</li>
+                    <li>$password - password</li>
+                </ul>
+            </div>
+        </div>
+        <form id="login" method="POST" action='#'>
+            <input type="text" name="login_name" id="login_name" placeholder="User Name">
+            <input type="text" name="login_password" id="login_password" placeholder="Password">
+            <input type="submit" value="Login">
+        </form>
+    </div>
+
+
+    <div class="logged" style="display: none;">
+        <h2 style="margin-top: 40px;">Only Logged user access</h2>
+
+        <!--<h3>Bind tower</h3>
+        <div class="info-block">
+            <span class="trigger">Show info</span>
+            <div class="info">
+                <p>emit('bind', {tower : string $tower})</p>
+                <ul>
+                    <li>$tower - tower name to bind user to</li>
+                </ul>
+            </div>
+        </div>
+        <form id="join" method="POST" action='#'>
+            <input type="text" name="join_room" id="join_room" placeholder="Tower name">
+            <input type="submit" value="Bind Tower">
+        </form>
+
+        <h3>UnBind tower</h3>
+        <div class="info-block">
+            <span class="trigger">Show info</span>
+            <div class="info">
+                <p>emit('leave', {tower : string $tower})</p>
+                <p>This is only for logged users (for testing purposes)</p>
+                <ul>
+                    <li>$tower - tower name to unbind user from</li>
+                </ul>
+            </div>
+        </div>
+        <form id="leave" method="POST" action='#'>
+            <input type="text" name="leave_room" id="leave_room" placeholder="Tower name">
+            <input type="submit" value="Unbind Tower">
+        </form>-->
+
+        <h3>Broadcast to tower</h3>
+        <div class="info-block">
+            <span class="trigger">Show info</span>
+            <div class="info">
+                <p>emit('broadcast_tower', {tower : string $tower, action: string $action})</p>
+                <ul>
+                    <li>$tower - tower name to broadcast action to all bind users</li>
+                    <li>$action - action name</li>
+                </ul>
+            </div>
+        </div>
+        <form id="send_room" method="POST" action='#'>
+            <input style="width: 400px;" type="text" name="room_name" id="room_name" placeholder="Tower ID">
+            <br><input type="text" name="room_data" id="room_data" placeholder="Action">
+            <input type="submit" value="Send to Tower">
+        </form>
+
+        <h3>Logout</h3>
+        <div class="info-block">
+            <span class="trigger">Show info</span>
+            <div class="info">
+                <p>emit('logout')</p>
+            </div>
+        </div>
+        <form id="logout" method="POST" action='#'>
+            <input type="submit" value="Logout">
+        </form>
+
+        <div id="towers">
+            <h3>Received towers coordinates:</h3>
+            <ul></ul>
+        </div>
+    </div>
+</div>
+<div style="width: 50%; float: right;">
+    <h3>Your location</h3>
+    Location: <input type="text" id="us2-address" style="width: 100%"/><br/>
+    <div id="map"></div>
+    Lat.: <input type="text" id="us2-lat"/>
+    Long.: <input type="text" id="us2-lon"/>
+
+    <h2>Events Log:</h2>
+    <div id="log"></div>
+</div>
+</body>
+</html>
