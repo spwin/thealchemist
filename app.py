@@ -81,7 +81,6 @@ def create_resource(tower, lat, lon, quantity):
         resource_db.save()
         message = resource.name + " appeared (lat: " + str(resource.lat / 100000) + ", lon: " + str(
             resource.lon / 100000) + ") quantity: " + str(resource.quantity)
-        print(message)
         send_message(resource.name + " appeared")
         socketio.emit('broadcast', {'msg': message}, broadcast=True)
         socketio.emit('auth', {'status': 'error', 'action': 'check', 'message': 'You must be logged in'})
@@ -312,7 +311,6 @@ def get_points(location):
             titles.append(point.name)
     except DoesNotExist as e:
         print(e)
-    print(points)
     emit('receive_points', {'points': points,
                             'labels': labels,
                             'descriptions': descriptions,
