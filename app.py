@@ -127,9 +127,9 @@ def index():
     return render_template('index.html', async_mode=socketio.async_mode)
 
 
-@app.route('/advanced')
-def advanced_index():
-    return render_template('advanced.html', async_mode=socketio.async_mode)
+# @app.route('/advanced')
+# def advanced_index():
+#     return render_template('advanced.html', async_mode=socketio.async_mode)
 
 
 @app.route('/points')
