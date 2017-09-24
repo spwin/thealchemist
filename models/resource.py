@@ -35,6 +35,35 @@ class Resource(Base):
         return '<Resource type: %r lat: %r lon: %r>' % (self.type, self.lat, self.lon)
 
 
+class UserFoundResource(Base):
+    id = columns.UUID(primary_key=True)
+    user_id = columns.UUID(primary_key=True, partition_key=True)
+    type = columns.Text(primary_key=True)
+    lat = columns.Integer(primary_key=True)
+    lon = columns.Integer(primary_key=True)
+    quantity = columns.Integer()
+    name = columns.Text()
+    description = columns.Text()
+
+    def __init__(self, id, user_id, type, lat, lon, quantity, name, description, tower_id, **values):
+        super().__init__(**values)
+        self.id = id
+        self.user_id = user_id
+        self.type = type
+        self.lat = lat
+        self.lon = lon
+        self.quantity = quantity
+        self.name = name
+        self.description = description
+        self.tower_id = tower_id
+
+    def get_id(self):
+        return unicode(self.id)
+
+    def __repr__(self):
+        return '<FoundResource type: %r lat: %r lon: %r user_id: %r>' % (self.type, self.lat, self.lon, self.user_id)
+
+
 class ResourceGenerator:
     resources = {
         'lead': 20,

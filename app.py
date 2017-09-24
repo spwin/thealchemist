@@ -3,6 +3,8 @@
 # Set this variable to "threading", "eventlet" or "gevent" to test the
 # different async modes, or leave it set to None for the application to choose
 # the best option based on installed packages.
+import uuid
+
 from cassandra.cqlengine.query import DoesNotExist, LWTException
 import eventlet
 
@@ -17,8 +19,8 @@ import functools
 from flask_login import LoginManager, current_user, login_user, logout_user
 from models.user import UserRegister, User
 from models.tower import TowerLocation, Tower
-from models.resource import Resource, ResourceGenerator
-import scripts.sync_db
+from models.resource import Resource, UserFoundResource, ResourceGenerator
+from scripts import sync_db
 import json
 
 app = Flask(__name__)
@@ -82,8 +84,14 @@ def create_resource(tower, lat, lon, quantity):
         message = resource.name + " appeared (lat: " + str(resource.lat / 100000) + ", lon: " + str(
             resource.lon / 100000) + ") quantity: " + str(resource.quantity)
         send_message(resource.name + " appeared")
-        socketio.emit('broadcast', {'msg': message}, broadcast=True)
-        socketio.emit('auth', {'status': 'error', 'action': 'check', 'message': 'You must be logged in'})
+        socketio.emit('resource_spawned', {'point': {'lat': (resource.lat / 100000), 'lon': (resource.lon / 100000)},
+                                           'id': resource_db.get_id(),
+                                           'towerid': tower,
+                                           'label': resource.type[0].capitalize(),
+                                           'description': resource.description,
+                                           'title': resource.name,
+                                           'quantity': quantity}, namespace='/main')
+        # socketio.emit('resource_spawned', {'msg': message}, namespace='/main', broadcast=True)
 
 
 @login_manager.user_loader
@@ -98,7 +106,8 @@ def authenticated_only(f):
             socketio.emit('broadcast',
                           {'msg': 'Not Logged In', 'error': 'auth'},
                           namespace='/main')
-            socketio.emit('auth', {'status': 'error', 'action': 'check', 'message': 'You must be logged in'})
+            socketio.emit('auth', {'status': 'error', 'action': 'check', 'message': 'You must be logged in'},
+                          namespace='/main')
         else:
             return f(*args, **kwargs)
 
@@ -220,9 +229,9 @@ def get_towers(location):
             # if tower coordinates match current user coordinates, make it current
             if latitude == lat and longitude == lon:
                 current_tower = tower_location
-            # append to towers array to be returned
             if tower:
                 create_resource(tower.id, tower_location.lat, tower_location.lon, total_resources_per_tower)
+            # append to towers array to be returned
             towers.append({'lat': tower_location.lat, 'lon': tower_location.lon})
     # if there is current tower, send it to user and update user db info
     if current_tower:
@@ -285,10 +294,6 @@ def get_points(location):
     lon = round(location['lon'] * (1 / step))
 
     points = []
-    labels = []
-    descriptions = []
-    quantities = []
-    titles = []
     towers = []
     tower_locations = []
 
@@ -304,19 +309,50 @@ def get_points(location):
         towers.append(tower)
     try:
         for point in Resource.objects(tower_id__in=list(tower.id for tower in towers)):
-            points.append({'lat': point.lat/100000, 'lon': point.lon/100000})
-            labels.append(point.type[0].capitalize())
-            descriptions.append(point.description)
-            quantities.append(point.quantity)
-            titles.append(point.name)
+            points.append({'location': {'lat': point.lat / 100000, 'lon': point.lon / 100000},
+                           'id': point.get_id(),
+                           'towerid': str(point.tower_id),
+                           'label': point.type[0].capitalize(),
+                           'description': point.description,
+                           'quantity': point.quantity,
+                           'title': point.name})
     except DoesNotExist as e:
         print(e)
-    emit('receive_points', {'points': points,
-                            'labels': labels,
-                            'descriptions': descriptions,
-                            'titles': titles,
-                            'quantities': quantities,
-                            'current': location})
+    emit('receive_points', {'points': points})
+
+
+@socketio.on('resource_found', namespace='/main')
+# @authenticated_only
+def resource_found(point):
+    print(point)
+    if isinstance(point, str):
+        point = json.loads(point)
+    idx = uuid.UUID(point['id'])
+    tower_id = uuid.UUID(point['tower_id'])
+    resource = None
+    try:
+        resource = Resource.get(tower_id=tower_id, id=idx)
+    except DoesNotExist as e:
+        print(e)
+    if resource:
+        print(resource)
+        if not current_user.is_authenticated:
+            user_id = uuid.UUID('5da5957c-9775-4f5f-b257-4a93a520b15c')
+        else:
+            user_id = current_user.id
+        user_resource = UserFoundResource(id=resource.id,
+                                          user_id=user_id,
+                                          type=resource.type,
+                                          lat=resource.lat,
+                                          lon=resource.lon,
+                                          quantity=resource.quantity,
+                                          name=resource.name,
+                                          description=resource.description,
+                                          tower_id=resource.tower_id)
+        user_resource.save()
+        resource.delete()
+        towerLocation = TowerLocation.get(lat=round(resource.lat / 1000), lon=round(resource.lon / 1000))
+        create_resource(str(tower_id), towerLocation.lat, towerLocation.lon, 1)
 
 
 if __name__ == '__main__':

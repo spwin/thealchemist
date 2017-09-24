@@ -2,7 +2,7 @@ from cassandra.cqlengine import connection
 from cassandra.cqlengine.management import sync_table
 from models.user import UserRegister, User
 from models.tower import Tower, TowerLocation
-from models.resource import Resource
+from models.resource import Resource, UserFoundResource
 import os
 
 os.environ["CQLENG_ALLOW_SCHEMA_MANAGEMENT"] = 'CQLENG_ALLOW_SCHEMA_MANAGEMENT'
@@ -14,3 +14,4 @@ sync_table(UserRegister)
 sync_table(Tower)
 sync_table(TowerLocation)
 sync_table(Resource)
+sync_table(UserFoundResource)

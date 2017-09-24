@@ -4,6 +4,11 @@
     <title>The Alchemist WEB Socket Simulator</title>
     <script type="text/javascript" src="http://code.jquery.com/jquery-1.4.2.min.js"></script>
     <script type="text/javascript" charset="utf-8">
+        var point_id;
+        var tower_id;
+        var selectedMarker;
+
+
         $(document).ready(function() {
             namespace = '/main';
             var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
@@ -72,10 +77,44 @@
             });
 
             socket.on('receive_points', function(data) {
-                console.log('received points');
-                initMap(data.points, data.labels, data.descriptions, data.titles, data.quantities, data.current, socket, map)
+                console.log(data.points.length);
+                initMap(data.points, socket, map);
+            });
+
+            socket.on('resource_spawned', function(data) {
+                var infowindow = new google.maps.InfoWindow();
+
+                var marker = new google.maps.Marker({
+                    position: {'lat': data.point.lat, 'lng': data.point.lon},
+                    map: map,
+                    title: data.title,
+                    label: data.label
+                });
+
+                google.maps.event.addListener(marker, 'click', (function(marker) {
+                    return function() {
+                      infowindow.setContent('<b>ID:</b> ' + data.id + '<br/>'+
+                                            '<b>Title:</b> ' + data.title + '<br/>'+
+                                            '<b>Quantity:</b> ' + data.quantity + '<br/>'+
+                                            '<b>Description:</b> ' + data.description);
+                      infowindow.open(map, marker);
+                      selectedMarker = marker;
+                      point_id = data.id;
+                      tower_id = data.towerid;
+                    }
+                })(marker));
+
+            });
+
+            $('form#resource_found_button').submit(function(event) {
+                event.preventDefault();
+                console.log(point_id);
+                selectedMarker.setMap(null);
+                socket.emit('resource_found', {'id': point_id, 'tower_id': tower_id});
+                return false;
             });
         });
+
 
         var markers = [];
         var markerCluster = null;
@@ -87,29 +126,34 @@
             markers.length = 0;
         }
 
-        function initMap(locations, labels, descriptions, titles, quantities, current, socket, map) {
+        function initMap(points, socket, map) {
             console.log('initMap');
 
             removeMarkers();
 
-            for(var i=0, location; location = locations[i]; i++){
+            for(var i=0, points; point = points[i]; i++){
                 var infowindow = new google.maps.InfoWindow();
 
                 var marker = new google.maps.Marker({
-                    position: {lat: location.lat, lng: location.lon},
+                    position: {lat: point.location.lat, lng: point.location.lon},
                     map: map,
-                    title: titles[i],
-                    label: labels[i]
+                    title: point.title,
+                    label: point.label
                 });
 
-                google.maps.event.addListener(marker, 'click', (function(marker, i) {
+                google.maps.event.addListener(marker, 'click', (function(marker, point) {
                     return function() {
-                      infowindow.setContent('<b>Title:</b> ' + titles[i] + '<br/>'+
-                                            '<b>Quantity:</b> ' + quantities[i] + '<br/>'+
-                                            '<b>Description:</b> ' + descriptions[i]);
+
+                      infowindow.setContent('<b>ID:</b> ' + point.id + '<br/>'+
+                                            '<b>Title:</b> ' + point.title + '<br/>'+
+                                            '<b>Quantity:</b> ' + point.quantity + '<br/>'+
+                                            '<b>Description:</b> ' + point.description);
                       infowindow.open(map, marker);
+                      selectedMarker = marker;
+                      point_id = point.id;
+                      tower_id = point.towerid;
                     }
-                })(marker, i));
+                })(marker, point));
 
                 markers[i] = marker;
             }
@@ -148,6 +192,9 @@
     <h3>Points</h3>
 </div>
 <input id="pac-input" style="width: 100%;" class="controls" type="text" placeholder="Search Box"/>
+<form id="resource_found_button" method="POST" action='#'>
+    <input type="submit" value="Mark as found">
+</form>
 <div id="map"></div>
 </body>
 </html>
