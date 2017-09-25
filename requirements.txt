@@ -12,3 +12,4 @@ python-engineio
 python-socketio
 six==1.9.0
 Werkzeug==0.12.2
+numpy==1.12.1
