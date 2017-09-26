@@ -61,7 +61,7 @@ class UserFoundResource(Base):
         return unicode(self.id)
 
     def __repr__(self):
-        return '<FoundResource type: %r lat: %r lon: %r user_id: %r>' % (self.type, self.lat, self.lon, self.user_id)
+        return '<FoundResource type: %r lat: %r lon: %r user_id: %r>' % (self.type, self.lat, self.lon, str(self.user_id))
 
 
 class ResourceGenerator:

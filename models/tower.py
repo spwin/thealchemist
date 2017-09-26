@@ -41,4 +41,4 @@ class Tower(Base):
         return unicode(self.id)
 
     def __repr__(self):
-        return '<Tower id: %r>' % self.id
+        return '<Tower id: %r>' % str(self.id)
