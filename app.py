@@ -127,11 +127,11 @@ def background_thread():
 
 @app.route('/')
 def index():
-    global thread
-    if thread is None:
-        thread = Thread(target=background_thread)
-        thread.daemon = True
-        thread.start()
+    # global thread
+    # if thread is None:
+    #     thread = Thread(target=background_thread)
+    #     thread.daemon = True
+    #     thread.start()
     return render_template('index.html', async_mode=socketio.async_mode)
 
 
