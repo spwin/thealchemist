@@ -82,6 +82,8 @@
             });
 
             socket.on('resource_spawned', function(data) {
+                console.log('Resource spawned!');
+
                 var infowindow = new google.maps.InfoWindow();
 
                 var marker = new google.maps.Marker({

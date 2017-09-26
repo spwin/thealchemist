@@ -5,10 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="472cc9e0-931c-4347-94d4-007eb8290529" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/resource.py" afterPath="$PROJECT_DIR$/models/resource.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/tower.py" afterPath="$PROJECT_DIR$/models/tower.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/user.py" afterPath="$PROJECT_DIR$/models/user.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/templates/points.html" afterPath="$PROJECT_DIR$/templates/points.html" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -20,11 +17,11 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="points.html" pinned="false" current-in-tab="false">
+      <file leaf-file-name="points.html" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/templates/points.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="3020">
-              <caret line="151" column="46" lean-forward="false" selection-start-line="151" selection-start-column="46" selection-end-line="151" selection-end-column="46" />
+            <state relative-caret-position="245">
+              <caret line="84" column="46" lean-forward="false" selection-start-line="84" selection-start-column="46" selection-end-line="84" selection-end-column="46" />
               <folding>
                 <element signature="n#style#0;n#input#0;n#body#0;n#html#0;n#!!top" expanded="true" />
               </folding>
@@ -32,7 +29,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="app.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="app.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="-455">
@@ -190,12 +187,12 @@
         <option value="$PROJECT_DIR$/templates/advanced.html" />
         <option value="$PROJECT_DIR$/templates/index.html" />
         <option value="$PROJECT_DIR$/scripts/sync_db.py" />
-        <option value="$PROJECT_DIR$/templates/points.html" />
         <option value="$PROJECT_DIR$/app.py" />
         <option value="$PROJECT_DIR$/requirements.txt" />
         <option value="$PROJECT_DIR$/models/resource.py" />
         <option value="$PROJECT_DIR$/models/tower.py" />
         <option value="$PROJECT_DIR$/models/user.py" />
+        <option value="$PROJECT_DIR$/templates/points.html" />
       </list>
     </option>
   </component>
@@ -842,16 +839,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/templates/points.html">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3020">
-          <caret line="151" column="46" lean-forward="false" selection-start-line="151" selection-start-column="46" selection-end-line="151" selection-end-column="46" />
-          <folding>
-            <element signature="n#style#0;n#input#0;n#body#0;n#html#0;n#!!top" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/requirements.txt">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="300">
@@ -914,6 +901,16 @@
           <caret line="303" column="53" lean-forward="false" selection-start-line="303" selection-start-column="39" selection-end-line="303" selection-end-column="53" />
           <folding>
             <element signature="e#220#231#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/templates/points.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="245">
+          <caret line="84" column="46" lean-forward="false" selection-start-line="84" selection-start-column="46" selection-end-line="84" selection-end-column="46" />
+          <folding>
+            <element signature="n#style#0;n#input#0;n#body#0;n#html#0;n#!!top" expanded="true" />
           </folding>
         </state>
       </provider>
