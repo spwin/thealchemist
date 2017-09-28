@@ -147,12 +147,12 @@ def points_index():
 
 @socketio.on('my_ping', namespace='/main')
 def ping_pong(location):
-    if isinstance(location, str):
-        location = json.loads(location)
-    lat = round(location['lat'] * 100000)
-    lon = round(location['lon'] * 100000)
-    if current_user.is_authenticated:
-        current_user.update(lat=lat, lon=lon)
+    # if isinstance(location, str):
+    #     location = json.loads(location)
+    # lat = round(location['lat'] * 100000)
+    # lon = round(location['lon'] * 100000)
+    # if current_user.is_authenticated:
+    #     current_user.update(lat=lat, lon=lon)
     emit('my_pong')
 
 
@@ -356,4 +356,4 @@ def resource_found(point):
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', debug=True)
+    socketio.run(app, host='0.0.0.0', debug=False)
