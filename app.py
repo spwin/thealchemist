@@ -85,8 +85,8 @@ def create_resource(tower, lat, lon, quantity):
             resource.lon / 100000) + ") quantity: " + str(resource.quantity)
         send_message(resource.name + " appeared")
         socketio.emit('resource_spawned', {'point': {'lat': (resource.lat / 100000), 'lon': (resource.lon / 100000)},
-                                           'id': resource_db.get_id(),
-                                           'towerid': tower,
+                                           'id': str(resource_db.id),
+                                           'towerid': str(tower),
                                            'label': resource.type[0].capitalize(),
                                            'description': resource.description,
                                            'title': resource.name,
