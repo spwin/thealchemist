@@ -275,15 +275,7 @@ def login_user_call(msg):
     else:
         login_user(user)
         emit('auth',
-             {'user': {
-                 'username': user.username,
-                 'email': user.email,
-                 'lat': user.lat,
-                 'lon': user.lon,
-                 'current_tower': user.current_tower
-             },
-                 'status': 'success', 'action': 'login',
-                 'message': 'Hi ' + user.username + '! You have been logged in!'})
+             {'status': 'success', 'action': 'login', 'message': 'Hi ' + user.username + '! You have been logged in!'})
 
 
 @socketio.on('logout', namespace='/main')
